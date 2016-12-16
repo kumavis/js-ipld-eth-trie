@@ -1,7 +1,7 @@
 {
-  "name": "js-ipld-eth-tx",
-  "version": "2.0.0",
-  "description": "JavaScript Implementation of the IPLD format - Ethereum Transaction",
+  "name": "js-ipld-eth-trie",
+  "version": "1.0.0",
+  "description": "JavaScript Implementation of the IPLD format - Ethereum Trie",
   "main": "src/index.js",
   "directories": {
     "test": "test"
@@ -9,8 +9,9 @@
   "dependencies": {
     "async": "^2.1.4",
     "cids": "^0.3.4",
-    "ethereumjs-tx": "^1.1.2",
-    "multihashes": "^0.3.0"
+    "merkle-patricia-tree": "^2.1.2",
+    "multihashes": "^0.3.0",
+    "rlp": "^2.0.0"
   },
   "devDependencies": {
     "aegir": "^9.1.2",

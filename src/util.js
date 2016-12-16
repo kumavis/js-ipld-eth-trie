@@ -1,22 +1,24 @@
 'use strict'
 
-const Transaction = require('ethereumjs-tx')
+const rlp = require('rlp')
+const TrieNode = require('merkle-patricia-tree/trieNode')
 const cidForHash = require('./common').cidForHash
 
 exports.deserialize = function (data, callback) {
   let deserialized
   try {
-    deserialized = new Transaction(data)
+    let rawNode = rlp.decode(data)
+    deserialized = new TrieNode(rawNode)
   } catch (err) {
     return callback(err)
   }
   callback(null, deserialized)
 }
 
-exports.serialize = function (tx, callback) {
+exports.serialize = function (trieNode, callback) {
   let serialized
   try {
-    serialized = tx.serialize()
+    serialized = trieNode.serialize()
   } catch (err) {
     return callback(err)
   }
@@ -26,7 +28,7 @@ exports.serialize = function (tx, callback) {
 exports.cid = function (tx, callback) {
   let cid
   try {
-    cid = cidForHash('eth-tx', tx.hash())
+    cid = cidForHash('eth-trie', tx.hash())
   } catch (err) {
     return callback(err)
   }

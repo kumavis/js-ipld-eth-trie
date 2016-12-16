@@ -1,46 +1,76 @@
 'use strict'
 
+const async = require('async')
+const TrieNode = require('merkle-patricia-tree/trieNode')
 const util = require('./util')
+const cidForHash = require('./common').cidForHash
+const isExternalLink = require('./common').isExternalLink
 
 exports = module.exports
 
-exports.multicodec = 'eth-tx'
+exports.multicodec = 'eth-trie'
 
 /*
  * resolve: receives a path and a block and returns the value on path,
  * throw if not possible. `block` is an IPFS Block instance (contains data + key)
  */
 exports.resolve = (block, path, callback) => {
-  let result
-  util.deserialize(block.data, (err, node) => {
+  util.deserialize(block.data, (err, trieNode) => {
     if (err) return callback(err)
 
     // root
     if (!path || path === '/') {
-      result = { value: node, remainderPath: '' }
+      let result = { value: node, remainderPath: '' }
       return callback(null, result)
     }
 
-    // check tree results
+    // parse path for parts
     let pathParts = path.split('/')
     let firstPart = pathParts.shift()
     let remainderPath = pathParts.join('/')
 
-    exports.tree(block, (err, paths) => {
+
+    // keep digging til we hit an external node
+    let currentNode = trieNode
+    let trieRemainderPath = firstPart
+
+    // dig down the trie until we can dig no further
+    async.doWhilst(digDeeper, checkIfWeCanGoDeeper, (err) => {
       if (err) return callback(err)
-
-      let treeResult = paths.find(child => child.path === firstPart)
-      if (!treeResult) {
-        let err = new Error('Path not found ("' + firstPart + '").')
-        return callback(err)
+      // finalize value
+      let value
+      if (currentNode.type === 'leaf') {
+        // leaf nodes resolve to their actual value
+        value = currentNode.getValue()
+      } else {
+        value = currentNode
       }
-
-      result = {
-        value: treeResult.value,
-        remainderPath: remainderPath
+      // finalize path remainder
+      if (remainderPath) {
+        remainderPath = trieRemainderPath + '/' + remainderPath
+      } else {
+        remainderPath = trieRemainderPath
       }
-      return callback(null, result)
+      callback(null, {
+        value: value,
+        remainderPath: remainderPath,
+      })
     })
+
+    // dig down to next node
+    function digDeeper (next) {
+      resolveOnNode(currentNode, trieRemainderPath, (err, result) => {
+        if (err) return next(err)
+        currentNode = result.value
+        trieRemainderPath = result.remainderPath
+        next()
+      })
+    }
+
+    // check if we can go deeper (result is inline node and path remains)
+    function checkIfWeCanGoDeeper () {
+      return trieRemainderPath.length > 0 && !isExternalLink(currentNode)
+    }
   })
 }
 
@@ -59,71 +89,68 @@ exports.tree = (block, options, callback) => {
     options = {}
   }
 
-  util.deserialize(block.data, (err, tx) => {
+  util.deserialize(block.data, (err, trieNode) => {
+    if (err) return callback(err)
+    pathsFromTrieNode(trieNode, callback)
+  })
+}
+
+// util
+
+function resolveOnNode(trieNode, path, callback){
+  pathsFromTrieNode(trieNode, (err, children) => {
     if (err) return callback(err)
 
-    const paths = []
+    // find child by matching path of any length
+    let treeResult = children.find(child => path.slice(0, child.path.length) === child.path)
 
-    // external links (none)
+    if (!treeResult) {
+      let err = new Error('Path not found ("' + path + '").')
+      return callback(err)
+    }
 
-    // external links as data (none)
+    let remainderPath
+    if (treeResult.value.type === 'leaf') {
+      // leaf nodes consume whole path
+      remainderPath = ''
+    } else {
+      // non-leaf nodes leave remainder path
+      remainderPath = path.slice(treeResult.path.length)
+    }
 
-    // internal data
-
-    paths.push({
-      path: 'nonce',
-      value: tx.nonce
-    })
-    paths.push({
-      path: 'gasPrice',
-      value: tx.gasPrice
-    })
-    paths.push({
-      path: 'gasLimit',
-      value: tx.gasLimit
-    })
-    paths.push({
-      path: 'toAddress',
-      value: tx.to
-    })
-    paths.push({
-      path: 'value',
-      value: tx.value
-    })
-    paths.push({
-      path: 'data',
-      value: tx.data
-    })
-    paths.push({
-      path: 'v',
-      value: tx.v
-    })
-    paths.push({
-      path: 'r',
-      value: tx.r
-    })
-    paths.push({
-      path: 's',
-      value: tx.s
-    })
-
-    // helpers
-
-    paths.push({
-      path: 'fromAddress',
-      value: tx.from
-    })
-
-    paths.push({
-      path: 'signature',
-      value: [tx.v, tx.r, tx.s]
-    })
-
-    paths.push({
-      path: 'isContractPublish',
-      value: tx.toCreationAddress()
-    })
-
-    callback(null, paths)
+    let result = {
+      value: treeResult.value,
+      remainderPath: remainderPath
+    }
+    return callback(null, result)
   })
+}
+
+function pathsFromTrieNode(trieNode, callback){
+  const paths = []
+
+  trieNode.getChildren().forEach((childData) => {
+    let key = keyToString(childData[0])
+    let value = childData[1]
+    if (TrieNode.isRawNode(value)) {
+      // some nodes contain their children as data
+      paths.push({
+        path: key,
+        value: new TrieNode(value),
+      })
+    } else {
+      // other nodes link by hash
+      let link = { '/': cidForHash('eth-trie', value).toBaseEncodedString() }
+      paths.push({
+        path: key,
+        value: link,
+      })
+    }
+  })
+
+  callback(null, paths)
+}
+
+function keyToString(data){
+  return data.map((num) => num.toString(16)).join('')
 }
