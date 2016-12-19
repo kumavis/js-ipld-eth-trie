@@ -25,10 +25,10 @@ exports.serialize = function (trieNode, callback) {
   callback(null, serialized)
 }
 
-exports.cid = function (tx, callback) {
+exports.cid = function (trieIpldFormat, tx, callback) {
   let cid
   try {
-    cid = cidForHash('eth-trie', tx.hash())
+    cid = cidForHash(trieIpldFormat, tx.hash())
   } catch (err) {
     return callback(err)
   }

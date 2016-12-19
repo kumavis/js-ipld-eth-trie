@@ -26,14 +26,10 @@ describe('IPLD format resolver (local)', () => {
     })
   })
 
-  it('multicodec is eth-trie', () => {
-    expect(resolver.multicodec).to.equal('eth-trie')
-  })
-
   describe('resolver.tree', () => {
     it('test root node', () => {
       let rootNode = dagNodes[0]
-      resolver.tree(rootNode, (err, children) => {
+      resolver.tree('eth-storage-trie', rootNode, (err, children) => {
         expect(err).to.not.exist
         expect(Array.isArray(children)).to.eql(true)
         expect(children.length).to.eql(1)
@@ -45,7 +41,7 @@ describe('IPLD format resolver (local)', () => {
 
     it('test root first branch node', () => {
       let firstBranchNode = dagNodes[1]
-      resolver.tree(firstBranchNode, (err, children) => {
+      resolver.tree('eth-storage-trie', firstBranchNode, (err, children) => {
         expect(err).to.not.exist
         expect(Array.isArray(children)).to.eql(true)
         expect(children.length).to.eql(3)
@@ -66,7 +62,7 @@ describe('IPLD format resolver (local)', () => {
     it('root node resolves to first branch node', () => {
       let rootNode = dagNodes[0]
       let firstBranchNode = dagNodes[1]
-      resolver.resolve(rootNode, '0/0/0/a/0/a/0/0', (err, result) => {
+      resolver.resolve('eth-storage-trie', rootNode, '0/0/0/a/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(trieNode.raw).to.eql(firstBranchNode.raw)
@@ -76,7 +72,7 @@ describe('IPLD format resolver (local)', () => {
 
     it('first branch node resolves "a" to remote', () => {
       let firstBranchNode = dagNodes[1]
-      resolver.resolve(firstBranchNode, 'a/0/a/0/0', (err, result) => {
+      resolver.resolve('eth-storage-trie', firstBranchNode, 'a/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('0/a/0/0')
@@ -86,7 +82,7 @@ describe('IPLD format resolver (local)', () => {
 
     it('first branch node resolves "b" to remote', () => {
       let firstBranchNode = dagNodes[1]
-      resolver.resolve(firstBranchNode, 'b/0/a/0/0', (err, result) => {
+      resolver.resolve('eth-storage-trie', firstBranchNode, 'b/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('0/a/0/0')
@@ -96,7 +92,7 @@ describe('IPLD format resolver (local)', () => {
 
     it('first branch node resolves "c" entirely', () => {
       let firstBranchNode = dagNodes[1]
-      resolver.resolve(firstBranchNode, 'c/0/a/0/0', (err, result) => {
+      resolver.resolve('eth-storage-trie', firstBranchNode, 'c/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('')
@@ -108,7 +104,7 @@ describe('IPLD format resolver (local)', () => {
 
     it('first branch node resolves "c" with remainderPath', () => {
       let firstBranchNode = dagNodes[1]
-      resolver.resolve(firstBranchNode, 'c/0/a/0/0/storage/a', (err, result) => {
+      resolver.resolve('eth-storage-trie', firstBranchNode, 'c/0/a/0/0/storage/a', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('storage/a')

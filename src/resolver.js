@@ -6,15 +6,11 @@ const util = require('./util')
 const cidForHash = require('./common').cidForHash
 const isExternalLink = require('./common').isExternalLink
 
-exports = module.exports
-
-exports.multicodec = 'eth-trie'
-
 /*
  * resolve: receives a path and a block and returns the value on path,
  * throw if not possible. `block` is an IPFS Block instance (contains data + key)
  */
-exports.resolve = (block, path, callback) => {
+exports.resolve = (trieIpldFormat, block, path, callback) => {
   util.deserialize(block.data, (err, trieNode) => {
     if (err) return callback(err)
 
@@ -54,7 +50,7 @@ exports.resolve = (block, path, callback) => {
 
     // dig down to next node
     function digDeeper (next) {
-      resolveOnNode(currentNode, trieRemainderPath, (err, result) => {
+      resolveOnNode(trieIpldFormat, currentNode, trieRemainderPath, (err, result) => {
         if (err) return next(err)
         currentNode = result.value
         trieRemainderPath = result.remainderPath
@@ -74,7 +70,7 @@ exports.resolve = (block, path, callback) => {
  * are option (i.e. nestness)
  */
 
-exports.tree = (block, options, callback) => {
+exports.tree = (trieIpldFormat, block, options, callback) => {
   // parse arguments
   if (typeof options === 'function') {
     callback = options
@@ -86,14 +82,14 @@ exports.tree = (block, options, callback) => {
 
   util.deserialize(block.data, (err, trieNode) => {
     if (err) return callback(err)
-    pathsFromTrieNode(trieNode, callback)
+    pathsFromTrieNode(trieIpldFormat, trieNode, callback)
   })
 }
 
 // util
 
-function resolveOnNode(trieNode, path, callback){
-  pathsFromTrieNode(trieNode, (err, children) => {
+function resolveOnNode(trieIpldFormat, trieNode, path, callback){
+  pathsFromTrieNode(trieIpldFormat, trieNode, (err, children) => {
     if (err) return callback(err)
 
     // find child by matching path of any length
@@ -122,7 +118,7 @@ function resolveOnNode(trieNode, path, callback){
   })
 }
 
-function pathsFromTrieNode(trieNode, callback){
+function pathsFromTrieNode(trieIpldFormat, trieNode, callback){
   const paths = []
 
   trieNode.getChildren().forEach((childData) => {
@@ -136,7 +132,7 @@ function pathsFromTrieNode(trieNode, callback){
       })
     } else {
       // other nodes link by hash
-      let link = { '/': cidForHash('eth-trie', value).toBaseEncodedString() }
+      let link = { '/': cidForHash(trieIpldFormat, value).toBaseEncodedString() }
       paths.push({
         path: key,
         value: link,
@@ -160,5 +156,5 @@ function guessPathEndFromParts(pathParts){
   let matchingPart = pathParts.find((part) => part.length > 1 || Number.isNaN(parseInt(part, 16)))
   if (!matchingPart) return pathParts.length - 1
   // use (index - 1) of matching part
-  return pathParts.indexOf(matchingPart)-1
+  return pathParts.indexOf(matchingPart) - 1
 }
