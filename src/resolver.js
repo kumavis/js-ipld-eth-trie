@@ -26,13 +26,10 @@ exports.resolve = (block, path, callback) => {
 
     // parse path for parts
     let pathParts = path.split('/')
-    let firstPart = pathParts.shift()
-    let remainderPath = pathParts.join('/')
-
-
-    // keep digging til we hit an external node
+    let triePathLength = guessPathEndFromParts(pathParts) + 1
+    let trieRemainderPath = pathParts.slice(0, triePathLength).join('/')
+    let remainderPath = pathParts.slice(triePathLength).join('/')
     let currentNode = trieNode
-    let trieRemainderPath = firstPart
 
     // dig down the trie until we can dig no further
     async.doWhilst(digDeeper, checkIfWeCanGoDeeper, (err) => {
@@ -46,10 +43,8 @@ exports.resolve = (block, path, callback) => {
         value = currentNode
       }
       // finalize path remainder
-      if (remainderPath) {
-        remainderPath = trieRemainderPath + '/' + remainderPath
-      } else {
-        remainderPath = trieRemainderPath
+      if (trieRemainderPath) {
+        remainderPath = trieRemainderPath + remainderPath
       }
       callback(null, {
         value: value,
@@ -109,17 +104,18 @@ function resolveOnNode(trieNode, path, callback){
       return callback(err)
     }
 
+    let value = treeResult.value
     let remainderPath
     if (treeResult.value.type === 'leaf') {
       // leaf nodes consume whole path
       remainderPath = ''
     } else {
       // non-leaf nodes leave remainder path
-      remainderPath = path.slice(treeResult.path.length)
+      remainderPath = path.slice(treeResult.path.length + 1)
     }
 
     let result = {
-      value: treeResult.value,
+      value: value,
       remainderPath: remainderPath
     }
     return callback(null, result)
@@ -130,7 +126,7 @@ function pathsFromTrieNode(trieNode, callback){
   const paths = []
 
   trieNode.getChildren().forEach((childData) => {
-    let key = keyToString(childData[0])
+    let key = nibbleToPath(childData[0])
     let value = childData[1]
     if (TrieNode.isRawNode(value)) {
       // some nodes contain their children as data
@@ -151,6 +147,18 @@ function pathsFromTrieNode(trieNode, callback){
   callback(null, paths)
 }
 
-function keyToString(data){
-  return data.map((num) => num.toString(16)).join('')
+function nibbleToPath(data){
+  return data.map((num) => num.toString(16)).join('/')
+}
+
+// we dont know how far we've come
+// we dont know how far we have left
+// the only thing we can do
+// is make an educated guess
+function guessPathEndFromParts(pathParts){
+  // find a path part that is not a valid half-byte
+  let matchingPart = pathParts.find((part) => part.length > 1 || Number.isNaN(parseInt(part, 16)))
+  if (!matchingPart) return pathParts.length - 1
+  // use (index - 1) of matching part
+  return pathParts.indexOf(matchingPart)-1
 }
