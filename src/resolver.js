@@ -39,9 +39,7 @@ exports.resolve = (trieIpldFormat, block, path, callback) => {
         value = currentNode
       }
       // finalize path remainder
-      if (trieRemainderPath) {
-        remainderPath = trieRemainderPath + remainderPath
-      }
+      remainderPath = [trieRemainderPath, remainderPath].filter(Boolean).join('/')
       callback(null, {
         value: value,
         remainderPath: remainderPath,
