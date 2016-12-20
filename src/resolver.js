@@ -27,6 +27,14 @@ exports.resolve = (trieIpldFormat, block, path, callback) => {
     let remainderPath = pathParts.slice(triePathLength).join('/')
     let currentNode = trieNode
 
+    // exit early if already at leaf
+    if (trieNode.type === 'leaf') {
+      return callback(null, {
+        value: currentNode.getValue(),
+        remainderPath: remainderPath,
+      })
+    }
+
     // dig down the trie until we can dig no further
     async.doWhilst(digDeeper, checkIfWeCanGoDeeper, (err) => {
       if (err) return callback(err)

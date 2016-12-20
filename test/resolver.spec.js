@@ -44,7 +44,7 @@ describe('IPLD format resolver (local)', () => {
       resolver.tree('eth-storage-trie', firstBranchNode, (err, children) => {
         expect(err).to.not.exist
         expect(Array.isArray(children)).to.eql(true)
-        expect(children.length).to.eql(3)
+        expect(children.length).to.eql(4)
         let child1 = children[0]
         expect(child1.path).to.eql('a')
         expect(isExternalLink(child1.value)).to.eql(true)
@@ -54,6 +54,9 @@ describe('IPLD format resolver (local)', () => {
         let child3 = children[2]
         expect(child3.path).to.eql('c')
         expect(isExternalLink(child3.value)).to.eql(false)
+        let child4 = children[3]
+        expect(child4.path).to.eql('d')
+        expect(isExternalLink(child4.value)).to.eql(true)
       })
     })
   })
@@ -113,6 +116,27 @@ describe('IPLD format resolver (local)', () => {
         expect(result.value.toString('hex')).to.eql('cafe07')
       })
     })
+
+    it('first branch node resolves "d" with remainderPath', () => {
+      let firstBranchNode = dagNodes[1]
+      resolver.resolve('eth-storage-trie', firstBranchNode, 'd/0/0/0/1/balance', (err, result) => {
+        expect(err).to.not.exist
+        let trieNode = result.value
+        expect(result.remainderPath).to.eql('0/0/0/1/balance')
+        expect(isExternalLink(trieNode)).to.eql(true)
+      })
+    })
+
+    it('"d" branch resolves leaf with no triePath in remainderPath', () => {
+      let dBranchNode = dagNodes[4]
+      resolver.resolve('eth-storage-trie', dBranchNode, '0/0/0/1/balance', (err, result) => {
+        expect(err).to.not.exist
+        let trieNode = result.value
+        console.log(result)
+        expect(result.remainderPath).to.eql('balance')
+        expect(isExternalLink(trieNode)).to.eql(false)
+      })
+    })
   })
 })
 
@@ -125,6 +149,8 @@ function populateTrie(trie, cb){
     (cb) => trie.put(new Buffer('000b0a00', 'hex'), new Buffer('cafe05', 'hex'), cb),
     (cb) => trie.put(new Buffer('000b0b00', 'hex'), new Buffer('cafe06', 'hex'), cb),
     (cb) => trie.put(new Buffer('000c0a00', 'hex'), new Buffer('cafe07', 'hex'), cb),
+    (cb) => trie.put(new Buffer('000d0001', 'hex'), new Buffer('cafe08', 'hex'), cb),
+    (cb) => trie.put(new Buffer('000d0002', 'hex'), new Buffer('cafe08', 'hex'), cb),
   ], (err) => {
     if (err) return cb(err)
     cb()
