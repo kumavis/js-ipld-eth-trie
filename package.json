@@ -16,7 +16,7 @@
   "devDependencies": {
     "aegir": "^9.1.2",
     "chai": "^3.5.0",
-    "ipfs-block": "^0.5.3"
+    "ipfs-block": "^0.5.4"
   },
   "scripts": {
     "test": "aegir-test",
