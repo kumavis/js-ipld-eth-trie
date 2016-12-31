@@ -27,7 +27,7 @@ describe('IPLD format resolver (local)', () => {
   })
 
   describe('resolver.tree', () => {
-    it('test root node', () => {
+    it('test root node', (done) => {
       let rootNode = dagNodes[0]
       resolver.tree('eth-storage-trie', rootNode, (err, children) => {
         expect(err).to.not.exist
@@ -36,10 +36,11 @@ describe('IPLD format resolver (local)', () => {
         let child = children[0]
         expect(child.path).to.eql('0/0/0')
         expect(isExternalLink(child.value)).to.eql(true)
+        done()
       })
     })
 
-    it('test root first branch node', () => {
+    it('test root first branch node', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.tree('eth-storage-trie', firstBranchNode, (err, children) => {
         expect(err).to.not.exist
@@ -57,12 +58,13 @@ describe('IPLD format resolver (local)', () => {
         let child4 = children[3]
         expect(child4.path).to.eql('d')
         expect(isExternalLink(child4.value)).to.eql(true)
+        done()
       })
     })
   })
 
   describe('resolver.resolve', () => {
-    it('root node resolves to first branch node', () => {
+    it('root node resolves to first branch node', (done) => {
       let rootNode = dagNodes[0]
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', rootNode, '0/0/0/a/0/a/0/0', (err, result) => {
@@ -70,30 +72,33 @@ describe('IPLD format resolver (local)', () => {
         let trieNode = result.value
         expect(trieNode.raw).to.eql(firstBranchNode.raw)
         expect(result.remainderPath).to.eql('a/0/a/0/0')
+        done()
       })
     })
 
-    it('first branch node resolves "a" to remote', () => {
+    it('first branch node resolves "a" to remote', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', firstBranchNode, 'a/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('0/a/0/0')
         expect(isExternalLink(trieNode)).to.eql(true)
+        done()
       })
     })
 
-    it('first branch node resolves "b" to remote', () => {
+    it('first branch node resolves "b" to remote', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', firstBranchNode, 'b/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('0/a/0/0')
         expect(isExternalLink(trieNode)).to.eql(true)
+        done()
       })
     })
 
-    it('first branch node resolves "c" entirely', () => {
+    it('first branch node resolves "c" entirely', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', firstBranchNode, 'c/0/a/0/0', (err, result) => {
         expect(err).to.not.exist
@@ -102,10 +107,11 @@ describe('IPLD format resolver (local)', () => {
         expect(isExternalLink(trieNode)).to.eql(false)
         expect(Buffer.isBuffer(result.value)).to.eql(true)
         expect(result.value.toString('hex')).to.eql('cafe07')
+        done()
       })
     })
 
-    it('first branch node resolves "c" with remainderPath', () => {
+    it('first branch node resolves "c" with remainderPath', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', firstBranchNode, 'c/0/a/0/0/storage/a', (err, result) => {
         expect(err).to.not.exist
@@ -114,27 +120,29 @@ describe('IPLD format resolver (local)', () => {
         expect(isExternalLink(trieNode)).to.eql(false)
         expect(Buffer.isBuffer(result.value)).to.eql(true)
         expect(result.value.toString('hex')).to.eql('cafe07')
+        done()
       })
     })
 
-    it('first branch node resolves "d" with remainderPath', () => {
+    it('first branch node resolves "d" with remainderPath', (done) => {
       let firstBranchNode = dagNodes[1]
       resolver.resolve('eth-storage-trie', firstBranchNode, 'd/0/0/0/1/balance', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
         expect(result.remainderPath).to.eql('0/0/0/1/balance')
         expect(isExternalLink(trieNode)).to.eql(true)
+        done()
       })
     })
 
-    it('"d" branch resolves leaf with no triePath in remainderPath', () => {
+    it('"d" branch resolves leaf with no triePath in remainderPath', (done) => {
       let dBranchNode = dagNodes[4]
       resolver.resolve('eth-storage-trie', dBranchNode, '0/0/0/1/balance', (err, result) => {
         expect(err).to.not.exist
         let trieNode = result.value
-        console.log(result)
         expect(result.remainderPath).to.eql('balance')
         expect(isExternalLink(trieNode)).to.eql(false)
+        done()
       })
     })
   })
