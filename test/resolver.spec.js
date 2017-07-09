@@ -11,14 +11,16 @@ const Trie = require('merkle-patricia-tree')
 const TrieNode = require('merkle-patricia-tree/trieNode')
 
 describe('IPLD format resolver (local)', () => {
-  let trie, trieNodes = [], dagNodes
+  let trie
+  let trieNodes = []
+  let dagNodes
 
   before((done) => {
     trie = new Trie()
     async.waterfall([
       (cb) => populateTrie(trie, cb),
       (cb) => dumpTrieNonInlineNodes(trie, trieNodes, cb),
-      (cb) => async.map(trieNodes, ipldEthTrie.util.serialize, cb),
+      (cb) => async.map(trieNodes, ipldEthTrie.util.serialize, cb)
     ], (err, result) => {
       if (err) return done(err)
       dagNodes = result.map((serialized) => new IpfsBlock(serialized))
@@ -148,7 +150,7 @@ describe('IPLD format resolver (local)', () => {
   })
 })
 
-function populateTrie(trie, cb){
+function populateTrie (trie, cb) {
   async.series([
     (cb) => trie.put(new Buffer('000a0a00', 'hex'), new Buffer('cafe01', 'hex'), cb),
     (cb) => trie.put(new Buffer('000a0a01', 'hex'), new Buffer('cafe02', 'hex'), cb),
@@ -158,14 +160,14 @@ function populateTrie(trie, cb){
     (cb) => trie.put(new Buffer('000b0b00', 'hex'), new Buffer('cafe06', 'hex'), cb),
     (cb) => trie.put(new Buffer('000c0a00', 'hex'), new Buffer('cafe07', 'hex'), cb),
     (cb) => trie.put(new Buffer('000d0001', 'hex'), new Buffer('cafe08', 'hex'), cb),
-    (cb) => trie.put(new Buffer('000d0002', 'hex'), new Buffer('cafe08', 'hex'), cb),
+    (cb) => trie.put(new Buffer('000d0002', 'hex'), new Buffer('cafe08', 'hex'), cb)
   ], (err) => {
     if (err) return cb(err)
     cb()
   })
 }
 
-function dumpTrieNonInlineNodes(trie, fullNodes, cb){
+function dumpTrieNonInlineNodes (trie, fullNodes, cb) {
   let inlineNodes = []
   trie._walkTrie(trie.root, (root, node, key, walkController) => {
     // skip inline nodes
@@ -183,6 +185,6 @@ function dumpTrieNonInlineNodes(trie, fullNodes, cb){
   }, cb)
 }
 
-function contains(array, item) {
+function contains (array, item) {
   return array.indexOf(item) !== -1
 }

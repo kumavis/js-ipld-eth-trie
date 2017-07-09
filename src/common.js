@@ -14,5 +14,5 @@ function cidForHash (codec, rawhash) {
 }
 
 function isExternalLink (obj) {
-  return !!obj['/']
+  return Boolean(obj['/'])
 }

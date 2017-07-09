@@ -4,7 +4,6 @@ const async = require('async')
 const TrieNode = require('merkle-patricia-tree/trieNode')
 const util = require('./util')
 const cidForHash = require('./common').cidForHash
-const isExternalLink = require('./common').isExternalLink
 
 /*
  * resolve: receives a path and a block and returns the value on path,
@@ -41,9 +40,9 @@ exports.resolveFromObject = (trieIpldFormat, ethTrieNode, path, callback) => {
     if (err) return callback(err)
 
     // find potential matches
-    let matches = paths.filter(child => child.path === path.slice(0,child.path.length))
+    let matches = paths.filter(child => child.path === path.slice(0, child.path.length))
     // take longest match
-    let sortedMatches = matches.sort((a,b) => a.path.length < b.path.length)
+    let sortedMatches = matches.sort((a, b) => a.path.length < b.path.length)
     let treeResult = sortedMatches[0]
 
     if (!treeResult) {
@@ -97,7 +96,6 @@ exports.tree = (trieIpldFormat, block, options, callback) => {
   })
 }
 
-
 exports.isLink = (block, path, callback) => {
   exports.resolve(block, path, (err, result) => {
     if (err) {
@@ -129,12 +127,14 @@ exports.treeFromObject = (trieIpldFormat, trieNode, options, callback) => {
       let childNode = new TrieNode(value)
       paths.push({
         path: key,
-        value: childNode,
+        value: childNode
       })
       // inline child non-leaf subpaths
       exports.treeFromObject(trieIpldFormat, childNode, options, (err, subtree) => {
         if (err) return next(err)
-        subtree.forEach((path) => path.path = key + '/' + path.path)
+        subtree.forEach((path) => {
+          path.path = key + '/' + path.path
+        })
         paths = paths.concat(subtree)
         next()
       })
@@ -143,7 +143,7 @@ exports.treeFromObject = (trieIpldFormat, trieNode, options, callback) => {
       let link = { '/': cidForHash(trieIpldFormat, value).toBaseEncodedString() }
       paths.push({
         path: key,
-        value: link,
+        value: link
       })
       next()
     }
@@ -153,7 +153,7 @@ exports.treeFromObject = (trieIpldFormat, trieNode, options, callback) => {
   })
 }
 
-function nibbleToPath(data){
+function nibbleToPath (data) {
   return data.map((num) => num.toString(16)).join('/')
 }
 
@@ -161,14 +161,14 @@ function nibbleToPath(data){
 // we dont know how far we have left
 // the only thing we can do
 // is make an educated guess
-function guessRemainingPath(path){
+function guessRemainingPath (path) {
   let pathParts = path.split('/')
   let triePathLength = guessPathEndFromParts(pathParts) + 1
   let remainderPath = pathParts.slice(triePathLength).join('/')
   return remainderPath
 }
 
-function guessPathEndFromParts(pathParts){
+function guessPathEndFromParts (pathParts) {
   // find a path part that is not a valid half-byte
   let matchingPart = pathParts.find((part) => part.length > 1 || Number.isNaN(parseInt(part, 16)))
   if (!matchingPart) return pathParts.length - 1
