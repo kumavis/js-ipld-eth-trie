@@ -20,7 +20,7 @@ exports.resolve = (trieIpldFormat, block, path, callback) => {
 
 exports.resolveFromObject = (trieIpldFormat, ethTrieNode, path, callback) => {
   let result
-  
+
   // root
   if (!path || path === '/') {
     result = { value: ethTrieNode, remainderPath: '' }
@@ -94,6 +94,25 @@ exports.tree = (trieIpldFormat, block, options, callback) => {
   util.deserialize(block.data, (err, trieNode) => {
     if (err) return callback(err)
     exports.treeFromObject(trieIpldFormat, trieNode, options, callback)
+  })
+}
+
+
+exports.isLink = (block, path, callback) => {
+  exports.resolve(block, path, (err, result) => {
+    if (err) {
+      return callback(err)
+    }
+
+    if (result.remainderPath.length > 0) {
+      return callback(new Error('path out of scope'))
+    }
+
+    if (typeof result.value === 'object' && result.value['/']) {
+      callback(null, result.value)
+    } else {
+      callback(null, false)
+    }
   })
 }
 
